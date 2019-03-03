@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Chris McDowell</title>
+    <link>https://christophermcdowell.dev/</link>
+    <description>Recent content on Chris McDowell</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <managingEditor>chris@christophermcdowell.dev (Christopher McDowell)</managingEditor>
+    <webMaster>chris@christophermcdowell.dev (Christopher McDowell)</webMaster>
+    <lastBuildDate>Sun, 03 Mar 2019 10:31:42 +0000</lastBuildDate>
+    
+	<atom:link href="https://christophermcdowell.dev/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Pagination With Redis</title>
+      <link>https://christophermcdowell.dev/post/pagination-with-redis/</link>
+      <pubDate>Sun, 03 Mar 2019 10:31:42 +0000</pubDate>
+      <author>chris@christophermcdowell.dev (Christopher McDowell)</author>
+      <guid>https://christophermcdowell.dev/post/pagination-with-redis/</guid>
+      <description>Pagination is almost universal in web applications and useful if you want to deliver manageable chunks of a large data set to the end user at their own pace. Although pagination can be achieved at the application level it is most often a task offloaded to the database. This article will explore different methods for pagination using Redis.
+This article will use the example of paging a collection of blog posts for a blog.</description>
+    </item>
+    
+    <item>
+      <title>About</title>
+      <link>https://christophermcdowell.dev/about/</link>
+      <pubDate>Sun, 03 Mar 2019 10:09:27 +0000</pubDate>
+      <author>chris@christophermcdowell.dev (Christopher McDowell)</author>
+      <guid>https://christophermcdowell.dev/about/</guid>
+      <description>I am a Software Developer with an interest in free and open source technologies.</description>
+    </item>
+    
+  </channel>
+</rss>

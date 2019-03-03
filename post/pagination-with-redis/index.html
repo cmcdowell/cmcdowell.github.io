@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en" itemscope itemtype="http://schema.org/WebPage">
+  <head>
+    
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Pagination With Redis - Chris McDowell</title>
+  <meta property="og:title" content="Pagination With Redis" />
+  <meta name="twitter:title" content="Pagination With Redis" />
+  <meta name="description" content="Pagination is almost universal in web applications and useful if you want to deliver manageable chunks of a large data set to the end user at their own pace. Although pagination can be achieved at the application level it is most often a task offloaded to the database. This article will explore different methods for pagination using Redis.
+This article will use the example of paging a collection of blog posts for a blog.">
+  <meta property="og:description" content="Pagination is almost universal in web applications and useful if you want to deliver manageable chunks of a large data set to the end user at their own pace. Although pagination can be achieved at the application level it is most often a task offloaded to the database. This article will explore different methods for pagination using Redis.
+This article will use the example of paging a collection of blog posts for a blog.">
+  <meta name="twitter:description" content="Pagination is almost universal in web applications and useful if you want to deliver manageable chunks of a large data set to the end user at their own pace. Although pagination can be achieved at the …">
+  <meta name="author" content="Christopher McDowell"/><script type="application/ld+json">
+{
+    "@context": "http://schema.org",
+    "@type": "WebSite",
+    "name": "Chris McDowell",
+    
+    "url": "https://christophermcdowell.dev"
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "name": "",
+  "url": "https://christophermcdowell.dev"
+  
+  
+  
+  
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "item": {
+          "@id": "https://christophermcdowell.dev",
+          "name": "home"
+        }
+    },{
+        "@type": "ListItem",
+        "position": 3,
+        "item": {
+          "@id": "https://christophermcdowell.dev/post/pagination-with-redis/",
+          "name": "Pagination with redis"
+        }
+    }]
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Article",
+  "author": {
+    "name" : "Christopher McDowell"
+  },
+  "headline": "Pagination With Redis",
+  "description" : "Pagination is almost universal in web applications and useful if you want to deliver manageable chunks of a large data set to the end user at their own pace. Although pagination can be achieved at the application level it is most often a task offloaded to the database. This article will explore different methods for pagination using Redis.
+This article will use the example of paging a collection of blog posts for a blog.",
+  "inLanguage" : "en",
+  "wordCount": 770,
+  "datePublished" : "2019-03-03T10:31:42",
+  "dateModified" : "2019-03-03T10:31:42",
+  "image" : "https://christophermcdowell.dev/profile.jpg",
+  "keywords" : [ "" ],
+  "mainEntityOfPage" : "https://christophermcdowell.dev/post/pagination-with-redis/",
+  "publisher" : {
+    "@type": "Organization",
+    "name" : "https://christophermcdowell.dev",
+    "logo" : {
+        "@type" : "ImageObject",
+        "url" : "https://christophermcdowell.dev/profile.jpg",
+        "height" :  60 ,
+        "width" :  60
+    }
+  }
+}
+</script>
+
+<meta property="og:title" content="Pagination With Redis" />
+<meta property="og:description" content="Pagination is almost universal in web applications and useful if you want to deliver manageable chunks of a large data set to the end user at their own pace. Although pagination can be achieved at the application level it is most often a task offloaded to the database. This article will explore different methods for pagination using Redis.
+This article will use the example of paging a collection of blog posts for a blog.">
+<meta property="og:image" content="https://christophermcdowell.dev/profile.jpg" />
+<meta property="og:url" content="https://christophermcdowell.dev/post/pagination-with-redis/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Chris McDowell" />
+  <meta name="twitter:title" content="Pagination With Redis" />
+  <meta name="twitter:description" content="Pagination is almost universal in web applications and useful if you want to deliver manageable chunks of a large data set to the end user at their own pace. Although pagination can be achieved at the …">
+  <meta name="twitter:image" content="https://christophermcdowell.dev/profile.jpg" />
+  <meta name="twitter:card" content="summary" />
+  <link href='https://christophermcdowell.dev/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="https://christophermcdowell.dev/profile.jpg" />
+  <meta name="twitter:image" content="https://christophermcdowell.dev/profile.jpg" />
+  <meta name="twitter:card" content="summary" />
+  <meta property="og:url" content="https://christophermcdowell.dev/post/pagination-with-redis/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Chris McDowell" />
+
+  <meta name="generator" content="Hugo 0.54.0" />
+  <link rel="alternate" href="https://christophermcdowell.dev/index.xml" type="application/rss+xml" title="Chris McDowell">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://christophermcdowell.dev/css/main.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="https://christophermcdowell.dev/css/highlight.min.css" /><link rel="stylesheet" href="https://christophermcdowell.dev/css/codeblock.css" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.css" integrity="sha384-h/L2W9KefUClHWaty3SLE5F/qvc4djlyR4qY3NUV5HGQBBW7stbcfff1+I/vmsHh" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/default-skin/default-skin.min.css" integrity="sha384-iD0dNku6PYSIQLyfTOpB06F2KCZJAKLOThS5HRe8b3ibhdEQ6eKsFf/EeFxdOt5R" crossorigin="anonymous">
+
+
+
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="https://christophermcdowell.dev">Chris McDowell</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/post/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About Me" href="/about">About Me</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    
+      <div class="avatar-container">
+        <div class="avatar-img-border">
+          <a title="Chris McDowell" href="https://christophermcdowell.dev">
+            <img class="avatar-img" src="https://christophermcdowell.dev/profile.jpg" alt="Chris McDowell" />
+          </a>
+        </div>
+      </div>
+    
+
+  </div>
+</nav>
+
+
+
+
+    
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+
+  
+  
+  
+
+
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              
+                <h1>Pagination With Redis</h1>
+              
+              
+              
+              
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on March 3, 2019
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;4&nbsp;minutes
+  
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Christopher McDowell
+  
+  
+</span>
+
+
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p><img src="/redis-logo.png" alt="Redis Logo" /></p>
+
+<p>Pagination is almost universal in web applications and useful if you want to
+deliver manageable chunks of a large data set to the end user at their own
+pace. Although pagination can be achieved at the application level it is most
+often a task offloaded to the database. This article will explore different
+methods for pagination using Redis.</p>
+
+<p>This article will use the example of paging a collection of blog posts for a
+blog.</p>
+
+<h3 id="sscan">SSCAN</h3>
+
+<p>The <a href="https://redis.io/commands/sscan">SSCAN</a> command can be used for incremental iteration over your collection
+of blog posts. The command will return one increment <em>(page)</em> of results and
+also return a cursor allowing you to get the next increment. When the returned
+cursor is <code>0</code> then the end has been reached.</p>
+
+<p>Let&rsquo;s look at an example. First let&rsquo;s assume we have 10 blog posts stored in
+Redis using the <a href="https://redis.io/commands/set">SET</a> command.</p>
+<div class="highlight"><pre class="chroma">redis&gt; SET post:1 &#34;Super interesting blog post about somthing.&#34;
+&#34;OK&#34;</pre></div>
+<p>Now let&rsquo;s use the Redis set data structure as an index of posts.
+We can add the key of each post, to this <em>posts</em> set.</p>
+<div class="highlight"><pre class="chroma">redis&gt; SADD posts post:1 post:2 post:3 post:4 post:5 post:6 post:7 post:8 post:9 post:10</pre></div>
+<p>When a user wants a page of blog posts we can use SSCAN to retrieve a page of
+keys. Supposing our page size is 2, we can do that as follows.</p>
+<div class="highlight"><pre class="chroma">redis&gt; SSCAN posts 0 COUNT 2
+1) &#34;10&#34;
+2) 1) &#34;post:1&#34;
+   2) &#34;post:3&#34;</pre></div>
+<p>The above command scans the set of posts with an initial cursor of <code>0</code>. Redis
+returns the cursor, which can be used with SSCAN to get the next increment of
+posts, and the keys of two posts from our posts set.  With each increment we
+can use the <a href="https://redis.io/commands/mget">MGET</a> command to get the content for our page of blog posts.</p>
+<div class="highlight"><pre class="chroma">redis&gt; MGET post:1 post:2
+1) &#34;Super interesting blog post about somthing.&#34;
+2) &#34;Yet another great blog post.&#34;</pre></div>
+<p>When the returned cursor
+is <code>0</code> you have iterated over the entire set of posts, and you should stop.</p>
+
+<p>You will notice that the posts are returned in a random order, if order is
+important you can use a sorted set as your index of posts and do the same as
+above with the <a href="https://redis.io/commands/zadd">ZADD</a> and
+<a href="https://redis.io/commands/ZSCAN">ZSCAN</a> commands.</p>
+
+<p>As noted in the Redis documentation, SSCAN will not always return <strong>COUNT</strong> items
+from your set. Sometimes it can return 0 items with a non 0 cursor (remember your iteration will not be
+finished until the cursor is 0) or more than <strong>COUNT</strong> items. If the exact number
+of items per page is important for your needs you may have to take this
+into account.</p>
+
+<p>SSCAN stores no state, so you will either need the user to pass in their cursor
+with each request for a page, or store it in their session.</p>
+
+<h3 id="zrange">ZRANGE</h3>
+
+<p>In a similar way to the previous method we can use one of Redis&rsquo;s compound data
+types as an index of blog posts. Just like before we let&rsquo;s assume we have 10
+blog posts stored using the <a href="https://redis.io/commands/set">SET</a> command.</p>
+<div class="highlight"><pre class="chroma">redis&gt; SET post:1 &#34;Super interesting blog post about somthing.&#34;
+&#34;OK&#34;</pre></div>
+<p>This time lets use a sorted set as our index. Just like before we can use the <a href="https://redis.io/commands/zadd">ZADD</a> command
+to add each post to the index as we create it, but this time ZADD lets us give
+each element a score. If we use the timestamp of each post as the score this
+means our index will be sorted by date/time, which seems desirable for a blog.</p>
+<div class="highlight"><pre class="chroma">redis&gt; ZADD posts 1551616976 post:1
+(integer) 1
+redis&gt; ZADD posts 1551617014 post:2
+(integer) 1
+redis&gt; ZADD posts 1551617037 post:3
+(integer) 1
+redis&gt; ZADD posts 1551617064 post:4
+(integer) 1</pre></div>
+<p>Now assuming a page size of 2, we can retrieve a page with the <a href="https://redis.io/commands/zrange">ZRANGE</a> command.</p>
+<div class="highlight"><pre class="chroma">redis&gt; zrange posts 0 1
+1) &#34;post:1&#34;
+2) &#34;post:2&#34;</pre></div>
+<p>And for page 2.</p>
+<div class="highlight"><pre class="chroma">redis&gt; zrange posts 2 4
+1) &#34;post:3&#34;
+2) &#34;post:4&#34;</pre></div>
+<p>Note that the start and end index of the ZRANGE command are both inclusive. If you would
+prefer the posts in reverse order (newest first) you can use the <a href="https://redis.io/commands/zrevrange">ZREVRANGE</a> command.</p>
+
+<p>And just like before we can get the content of the posts with the <a href="https://redis.io/commands/mget">MEGET</a>
+command.</p>
+
+<p>The user will have to pass in the start and end index with each request. Or if
+you prefer you can convert a page number and a page size to a start and end
+index.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>There are various methods for pagination using Redis, above are just a few.
+Redis is a very flexible database that you can build some fairly complex
+features with, and because all the data is stored in memory Redis is very fast.</p>
+
+
+        
+
+        
+            <hr/>
+            <section id="social-share">
+              <div class="list-inline footer-links">
+                
+
+<div class="share-box" aria-hidden="true">
+    <ul class="share">
+      
+      <li>
+        <a href="//twitter.com/share?url=https%3a%2f%2fchristophermcdowell.dev%2fpost%2fpagination-with-redis%2f&amp;text=Pagination%20With%20Redis&amp;via=" target="_blank" title="Share on Twitter">
+          <i class="fab fa-twitter"></i>
+        </a>
+      </li>
+  
+      
+      <li>
+        <a href="//plus.google.com/share?url=https%3a%2f%2fchristophermcdowell.dev%2fpost%2fpagination-with-redis%2f" target="_blank" title="Share on Google Plus">
+          <i class="fab fa-google-plus"></i>
+        </a>
+      </li>
+  
+      
+      <li>
+        <a href="//www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fchristophermcdowell.dev%2fpost%2fpagination-with-redis%2f" target="_blank" title="Share on Facebook">
+          <i class="fab fa-facebook"></i>
+        </a>
+      </li>
+  
+      
+      <li>
+        <a href="//reddit.com/submit?url=https%3a%2f%2fchristophermcdowell.dev%2fpost%2fpagination-with-redis%2f&amp;title=Pagination%20With%20Redis" target="_blank" title="Share on Reddit">
+          <i class="fab fa-reddit"></i>
+        </a>
+      </li>
+  
+      
+      <li>
+        <a href="//www.linkedin.com/shareArticle?url=https%3a%2f%2fchristophermcdowell.dev%2fpost%2fpagination-with-redis%2f&amp;title=Pagination%20With%20Redis" target="_blank" title="Share on LinkedIn">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+  
+      
+      <li>
+        <a href="//www.stumbleupon.com/submit?url=https%3a%2f%2fchristophermcdowell.dev%2fpost%2fpagination-with-redis%2f&amp;title=Pagination%20With%20Redis" target="_blank" title="Share on StumbleUpon">
+          <i class="fab fa-stumbleupon"></i>
+        </a>
+      </li>
+  
+      
+      <li>
+        <a href="//www.pinterest.com/pin/create/button/?url=https%3a%2f%2fchristophermcdowell.dev%2fpost%2fpagination-with-redis%2f&amp;description=Pagination%20With%20Redis" target="_blank" title="Share on Pinterest">
+          <i class="fab fa-pinterest"></i>
+        </a>
+      </li>
+    </ul>
+  </div>
+  
+              </div>
+            </section>
+        
+
+        
+      </article>
+
+      
+        <ul class="pager blog-pager">
+          
+          
+        </ul>
+      
+
+
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:chris@christophermcdowell.dev" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/cmcdowell" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/chrispmcdowell" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            
+            <a href="https://christophermcdowell.dev/index.xml" title="RSS">
+            
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="fas fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="christophermcdowell.dev">Christopher McDowell</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;&copy;
+          
+            2019
+          
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="https://christophermcdowell.dev">Chris McDowell</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.54.0</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.js" integrity="sha384-K3vbOmF2BtaVai+Qk37uypf7VrgBubhQreNQe9aGsz9lB63dIFiQVlJbr92dw2Lx" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/contrib/auto-render.min.js" integrity="sha384-kmZOZB5ObwgQnS/DuDg6TScgOiWWBiVt0plIRkZCmE6rDZGrEOQeHM5PcHi+nyqe" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="https://christophermcdowell.dev/js/main.js"></script>
+<script src="https://christophermcdowell.dev/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script>
+<script> $(document).ready(function() {$("pre.chroma").css("padding","0");}); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.js" integrity="sha384-QELNnmcmU8IR9ZAykt67vGr9/rZJdHbiWi64V88fCPaOohUlHCqUD/unNN0BXSqy" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe-ui-default.min.js" integrity="sha384-m67o7SkQ1ALzKZIFh4CiTA8tmadaujiTa9Vu+nqPSwDOqHrDmxLezTdFln8077+q" crossorigin="anonymous"></script>
+<script src="https://christophermcdowell.dev/js/load-photoswipe.js"></script>
+
+
+
+
+
+
+
+
+  </body>
+</html>
+
