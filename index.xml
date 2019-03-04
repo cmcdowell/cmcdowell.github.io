@@ -28,7 +28,8 @@ This article will use the example of paging a collection of blog posts for a blo
       <pubDate>Sun, 03 Mar 2019 10:09:27 +0000</pubDate>
       <author>chris@christophermcdowell.dev (Christopher McDowell)</author>
       <guid>https://christophermcdowell.dev/about/</guid>
-      <description>I am a Software Developer with an interest in free and open source technologies.</description>
+      <description>I&amp;rsquo;m a software developer with an enthusiasm for FLOSS, focusing on Java, Python, Docker, and Redis.
+In my free time, I love to travel and cook.</description>
     </item>
     
   </channel>

@@ -66,7 +66,7 @@ This article will use the example of paging a collection of blog posts for a blo
   "description" : "Pagination is almost universal in web applications and useful if you want to deliver manageable chunks of a large data set to the end user at their own pace. Although pagination can be achieved at the application level it is most often a task offloaded to the database. This article will explore different methods for pagination using Redis.
 This article will use the example of paging a collection of blog posts for a blog.",
   "inLanguage" : "en",
-  "wordCount": 770,
+  "wordCount": 771,
   "datePublished" : "2019-03-03T10:31:42",
   "dateModified" : "2019-03-03T10:31:42",
   "image" : "https://christophermcdowell.dev/profile.jpg",
@@ -290,9 +290,9 @@ of blog posts. The command will return one increment <em>(page)</em> of results 
 also return a cursor allowing you to get the next increment. When the returned
 cursor is <code>0</code> then the end has been reached.</p>
 
-<p>Let&rsquo;s look at an example. First let&rsquo;s assume we have 10 blog posts stored in
+<p>Let&rsquo;s look at an example. First, let&rsquo;s assume we have 10 blog posts stored in
 Redis using the <a href="https://redis.io/commands/set">SET</a> command.</p>
-<div class="highlight"><pre class="chroma">redis&gt; SET post:1 &#34;Super interesting blog post about somthing.&#34;
+<div class="highlight"><pre class="chroma">redis&gt; SET post:1 &#34;Super interesting blog post about something.&#34;
 &#34;OK&#34;</pre></div>
 <p>Now let&rsquo;s use the Redis set data structure as an index of posts.
 We can add the key of each post, to this <em>posts</em> set.</p>
@@ -305,34 +305,34 @@ keys. Supposing our page size is 2, we can do that as follows.</p>
    2) &#34;post:3&#34;</pre></div>
 <p>The above command scans the set of posts with an initial cursor of <code>0</code>. Redis
 returns the cursor, which can be used with SSCAN to get the next increment of
-posts, and the keys of two posts from our posts set.  With each increment we
+posts, and the keys of two posts from our posts set.  With each increment, we
 can use the <a href="https://redis.io/commands/mget">MGET</a> command to get the content for our page of blog posts.</p>
 <div class="highlight"><pre class="chroma">redis&gt; MGET post:1 post:2
-1) &#34;Super interesting blog post about somthing.&#34;
+1) &#34;Super interesting blog post about something.&#34;
 2) &#34;Yet another great blog post.&#34;</pre></div>
 <p>When the returned cursor
 is <code>0</code> you have iterated over the entire set of posts, and you should stop.</p>
 
-<p>You will notice that the posts are returned in a random order, if order is
+<p>You will notice that the posts are returned in a random order, if the order is
 important you can use a sorted set as your index of posts and do the same as
 above with the <a href="https://redis.io/commands/zadd">ZADD</a> and
 <a href="https://redis.io/commands/ZSCAN">ZSCAN</a> commands.</p>
 
 <p>As noted in the Redis documentation, SSCAN will not always return <strong>COUNT</strong> items
-from your set. Sometimes it can return 0 items with a non 0 cursor (remember your iteration will not be
+from your set. Sometimes it can return 0 items with a non zero cursor (remember your iteration will not be
 finished until the cursor is 0) or more than <strong>COUNT</strong> items. If the exact number
 of items per page is important for your needs you may have to take this
 into account.</p>
 
 <p>SSCAN stores no state, so you will either need the user to pass in their cursor
-with each request for a page, or store it in their session.</p>
+with each request for a page or store it in their session.</p>
 
 <h3 id="zrange">ZRANGE</h3>
 
-<p>In a similar way to the previous method we can use one of Redis&rsquo;s compound data
+<p>In a similar way to the previous method, we can use one of Redis&rsquo;s compound data
 types as an index of blog posts. Just like before we let&rsquo;s assume we have 10
 blog posts stored using the <a href="https://redis.io/commands/set">SET</a> command.</p>
-<div class="highlight"><pre class="chroma">redis&gt; SET post:1 &#34;Super interesting blog post about somthing.&#34;
+<div class="highlight"><pre class="chroma">redis&gt; SET post:1 &#34;Super interesting blog post about something.&#34;
 &#34;OK&#34;</pre></div>
 <p>This time lets use a sorted set as our index. Just like before we can use the <a href="https://redis.io/commands/zadd">ZADD</a> command
 to add each post to the index as we create it, but this time ZADD lets us give
@@ -347,11 +347,11 @@ redis&gt; ZADD posts 1551617037 post:3
 redis&gt; ZADD posts 1551617064 post:4
 (integer) 1</pre></div>
 <p>Now assuming a page size of 2, we can retrieve a page with the <a href="https://redis.io/commands/zrange">ZRANGE</a> command.</p>
-<div class="highlight"><pre class="chroma">redis&gt; zrange posts 0 1
+<div class="highlight"><pre class="chroma">redis&gt; ZRANGE posts 0 1
 1) &#34;post:1&#34;
 2) &#34;post:2&#34;</pre></div>
 <p>And for page 2.</p>
-<div class="highlight"><pre class="chroma">redis&gt; zrange posts 2 4
+<div class="highlight"><pre class="chroma">redis&gt; ZRANGE posts 2 4
 1) &#34;post:3&#34;
 2) &#34;post:4&#34;</pre></div>
 <p>Note that the start and end index of the ZRANGE command are both inclusive. If you would
